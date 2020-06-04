@@ -1,0 +1,106 @@
+Problem 1
+problem: unidirectional bridge
+WE/EW direction traffic coordination
+time_to_cross_bridge: 15min
+Car = process;
+bridge = critical section
+
+traffic_control_mechanism:
+1. Arriving Car must wait if there is traffic on the bridge going in the opposite direction. (block)
+2. Multiple cars traveling in the same direction allowed on bridge for k bridge utilization. (kmimum utilization)
+3. Avoid starvation by stopping after a batch of k cars if there is waiting cars opposite side. (avoid starvation)
+4. bridge is open in both directions first car determines traffic. (first come first serve)
+
+solution for problem 1
+const int k = 4;
+
+class Monitor {
+    //these conition variables signal the execuation
+    condition_variable WE;
+    condition_variable EW;
+    //keep trac of the traffic in the bridge
+    int num_of_cars_EW = 0;
+    int num_of_cars_WE = 0;
+    //keep track fo total passes from one side to avoid strvation
+    int batch = 0;
+
+
+    void Enter_WE(Queue<pid_t> queue_WE){
+        //to avoid starvation if the number of passes have exceded the limit allow the batch to finish
+        if (batch > k){
+            while( num_of_cars_WE != 0 && queue(EW) > 0) cwait(WE);     //empty out the bridge
+            cnotify(EW);
+            sleep(1);
+            if (num_of_cars_EW > 0) batch = 0;
+        }
+        //blocks traffic if incoming traffic EW
+        while( num_of_cars_EW != 0 ) cwait(WE);
+        //increment the number of processes
+        num_of_cars_WE++; batch++;
+    }//Enter_WE()
+
+
+
+    void Enter_EW(Queue<pid_t> queue_EW){
+        if (batch > k){
+            while( num_of_cars_EW != 0 && queue(WE) > 0) cwait(EW);  //empty out the bridge
+            cnotify(WE);
+            sleep(1);
+            if (num_of_cars_WE > 0) batch = 0;
+        }
+
+        while( num_of_cars_WE != 0) cwait(EW);
+        num_of_cars_EW++; batch++;
+    }//Enter_EW()
+
+
+    
+    void Exit_WE(){
+        exit(0);
+        num_of_cars_WE--;
+        if (num_of_cars_WE == 0)
+            cnotify(EW);
+    }//Exit_WE()
+
+    void Exit_EW(){
+        exit(0);
+        num_of_proceses_EW--;
+        if (num_of_cars_EW == 0)
+            cnotify(WE);
+    }//Exit_WE
+};//End class Monitor
+
+//Manages traffic WE/EW
+class traffic_control_mechanism{
+    
+}
+
+main(){
+    //number_of_processes_in_each_queue
+    int N;
+    //Queue for holding processes
+    Queue<pid_t> queue_WE;
+    Queue<pid_t> queue_EW;
+    //Monitor for traffic control
+    Monitor m;
+
+    int status = 0;
+    pid_t pid  = fork();
+    if(pid == 0) {
+        paralell_begin(process1, process2, process3...processN);
+        queue_WE.enqueue(process1... processN);
+        m.Enter_WE(queue_WE);
+        /* Critical Section */
+        m.Exit_WE();
+    } else {
+        paralell_begin(process1, process2, process3...processN);
+        queue_EW.enqueue(process1... processN);
+        m.Enter_EW(queue_EW);
+        /* Critical section */
+        m.Exit_EW();
+    }
+    
+    while ((pid = wait(&status)) > 0);
+    exit(0);
+}
+

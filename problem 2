@@ -1,0 +1,78 @@
+problem 2
+Develop a solution for the Dining Philosopher’s problem using 
+AND-Synchronization (i.e., Parallel Semaphores SP and SV).
+
+struct shredmem{
+    semaphore f[5];
+}
+
+int main{
+    //Initialize shared memory
+    int shmID;
+    struct shared_mem *shared;
+    //Gets the offset/ID for the shared memory location
+    shmID  = shmget(IPC_PRIVATE, sizeof(*shared), IPC_CREAT | 0644);
+    //Maps the shared memory struct to the shared memory
+    shared  = shmat(shmID, 0, 0);
+    
+    sem_init(&shared->f[0], 1, 1);  //init fork 1
+    sem_init(&shared->f[1], 1, 1);  //init fork 2
+    sem_init(&shared->f[2], 1, 1);  //init fork 3
+    sem_init(&shared->f[3], 1, 1);  //init fork 4
+    sem_init(&shared->f[4], 1, 1);  //init fork 5
+
+    //Create system of 5 processes / 5 Philosophers
+    parallel_begin(Process(0), Process(1), Process(3), Process(4));
+
+    while ((pid = wait(&status)) > 0);
+    exit(0);
+}
+
+p[i]:
+Process(i){
+
+    while(1){
+        THINK;
+        grab_fork(i);
+        EAT;
+        return_fork(i);
+    }
+    
+}
+
+grab_fork(i){
+    SP(f[i]); 
+    SP(f[(i+1)%5]);
+}
+
+return_fork(i){
+    SV(f[i]);
+    SV(f[(i+1)%5]);
+}
+
+
+
+
+SP(semaphore1, checkNum1, decNum1, semaphore2, checkNum2, decNum2...): atomic
+  for_each semaphore, checkNum{
+    if(semaphore.count < checkNum){//if no rsrcs avail
+      add self to semaphore.queue;
+      set prog counter to beginning of this function AND block; (move to blocked state)
+    }//end if no rsrcs avail
+  }//end for_each semaphore check count
+
+  //only get here, if all semaphores tested true
+  for_each semaphore, decNum{
+    semaphore.count -= decNum;
+  }//end for_each semaphore decrement
+END SP()
+
+SV(semaphore1, incNum1, semaphore2, incNum2...): atomic
+  for_each semaphore, incNum{
+    semaphore.count += incNum;
+  }//end for_each semaphore
+
+  //all waiting processes get woken-up at the same time, and only AFTER
+  //  all of the semaphore counts have been incremented
+  wakeUp ALL processes in semaphore.queue (move ALL to ready state)
+END SV()

@@ -1,0 +1,14 @@
+Uzair Akram HW2
+
+tresproc.c
+compile using: gcc -o tresproc -pthread tresproc.c
+The program requires the -pthread flag, but how ever does not use threads.
+
+run using: ./tresproc
+The program require that file "F.txt" be present.
+I have provided one 'F.txt' file with the project.
+
+Description:
+The program implements process-shared semaphores placed in a shared memory region, to provide mutual exclusion for the resources in the critical section.
+
+The F file is located in cse01 local /tmp directory.
